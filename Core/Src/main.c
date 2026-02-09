@@ -20,28 +20,37 @@
 #include "main.h"
 
 
-
 //#if !defined(__SOFT_FP__) && defined(__ARM_FP)
 //  #warning "FPU is not initialized, but the project is compiling for an FPU. Please initialize the FPU before use."
 //#endif
 
-void vtask1(void *);
-void vtask2(void *);
+// pointers to task block
+TaskHandle_t pxtask1_handle;
+TaskHandle_t pxtask2_handle;
+
+void pvmaintask1(void *);
+void pvmaintask2(void *);
+
 
 int main(void)
 {
-	BaseType_t ret_val = 0;
+	BaseType_t xret_val = 0;
 
 	SystemClock_Config();
 
-	ret_val = xTaskCreate(vtask1, "blink-led-fast", 512, NULL, 1, NULL);
-	if(ret_val == pdFAIL)
+	pvitm_init();
+	pvgpio_gpiod_init();
+
+
+
+	xret_val = xTaskCreate(pvmaintask1, "blink-led-fast", 1024, NULL, 1, &pxtask1_handle);
+	if(xret_val == pdFAIL)
 	{
 		configASSERT(0);
 	}
 
-	ret_val = xTaskCreate(vtask2, "blink-led-slow", 512, NULL, 1, NULL);
-	if(ret_val == pdFAIL)
+	xret_val = xTaskCreate(pvmaintask2, "blink-led-slow", 1024, NULL, 1, &pxtask2_handle);
+	if(xret_val == pdFAIL)
 	{
 		configASSERT(0);
 	}
@@ -53,20 +62,37 @@ int main(void)
 }
 
 
+
 /**
  *  blink led fast
  */
-void vtask1(void *pvParameters)
+void pvmaintask1(void *pvParameters)
 {
-	for(;;);
+	const TickType_t xdelay_ms1 = pdMS_TO_TICKS(4000);
+
+	for(;;)
+	{
+		printf("task a\n");
+
+		GPIOD->ODR ^= (0x1U<<12);	//toggle PD12
+		vTaskDelay(xdelay_ms1);
+	}
 }
 
 /**
  *  blink led slow
  */
-void vtask2(void *pvParameters)
+void pvmaintask2(void *pvParameters)
 {
-	for(;;);
+	const TickType_t xdelay_ms2 = pdMS_TO_TICKS(2000);
+
+	for(;;)
+	{
+		printf("task b\n");
+
+		GPIOD->ODR ^= (0x1U<<13);	//toggle PD13
+		vTaskDelay(xdelay_ms2);
+	}
 }
 
 
@@ -77,8 +103,8 @@ void vtask2(void *pvParameters)
 void SystemClock_Config(void)
 {
   //HSI = 16MHz default, PLL input clock frequency
-  RCC->PLLCFGR |= (1U<<22);	//HSI as PLL source clock
-  userConfigASSERT(RCC->PLLCFGR, (1U<<22), (1U<<22));
+  RCC->PLLCFGR &= (~(1U<<22));	//HSI as PLL source clock
+  userConfigASSERT(RCC->PLLCFGR, (1U<<22), (0U<<22));
 
   //VCO input frequency = PLL input clock frequency / M , 8MHz
   RCC->PLLCFGR &= (~(0x3FU<<0));	//mask PLLM bits
@@ -100,7 +126,7 @@ void SystemClock_Config(void)
   RCC->PLLCFGR |= (0x7U<<24);		//Q = 7
   userConfigASSERT(RCC->PLLCFGR, (0xFU<<24), (0x7U<<24));
 
-  //AHB clk out = 168MHz
+  //AHB clk out = 168MHz, HCLK
   RCC->CFGR &= (~(0xFU<<4));		//mask AHB prescaler bits
   RCC->CFGR |= (0x0U<<4);			//AHB prescaler = null
   userConfigASSERT(RCC->CFGR, (0xFU<<4), (0x0U<<4));
@@ -119,7 +145,7 @@ void SystemClock_Config(void)
   RCC->CFGR &= (~(0x3U<<0));
   RCC->CFGR |= (0x2U<<0);
   userConfigASSERT(RCC->CFGR, (0x3U<<0), (0x2U<<0));
-  while((RCC->CFGR & (0x3U<<2)) != (0x2U<<2));	//wait for pll select as sys clk
+//  while((RCC->CFGR & (0x3U<<2)) != (0x2U<<2));	//wait for pll select as sys clk
 
   RCC->CR |= (1U<<0);	//hsi on
   while((RCC->CR & (0x1U<<1)) != (0x1U<<1));	//wait for hsi stable
@@ -127,4 +153,8 @@ void SystemClock_Config(void)
   RCC->CR |= (1U<<24);	//main PLL on
   while((RCC->CR & (0x1U<<25)) != (0x1U<<25));	//wait for main PLL stable
 
+  SystemCoreClockUpdate();
+
 }
+
+

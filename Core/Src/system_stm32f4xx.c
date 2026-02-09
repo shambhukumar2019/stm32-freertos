@@ -134,7 +134,7 @@
                is no need to call the 2 first functions listed above, since SystemCoreClock
                variable is updated automatically.
   */
-uint32_t SystemCoreClock = 16000000;
+uint32_t SystemCoreClock = 168000000;
 const uint8_t AHBPrescTable[16] = {0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 6, 7, 8, 9};
 const uint8_t APBPrescTable[8]  = {0, 0, 0, 0, 1, 2, 3, 4};
 /**
@@ -166,8 +166,9 @@ const uint8_t APBPrescTable[8]  = {0, 0, 0, 0, 1, 2, 3, 4};
   */
 void SystemInit(void)
 {
-	/* reset all peripherals */
+	volatile uint32_t tempreg = 0;
 
+	/* hardware reset all peripherals */
 	//reset crc, gpio, otg hs, ethernet, dma modules
 	RCC->AHB1RSTR |= 0x22e017ffU;
 
@@ -182,6 +183,36 @@ void SystemInit(void)
 
 	//reset timer, system config controller, spi, sdio, adc, uart peripherals
 	RCC->APB2RSTR |= 0x00075933U;
+
+	// delay to let reset stable
+	tempreg = RCC->AHB1RSTR;
+	(void)tempreg;
+	tempreg = RCC->AHB2RSTR;
+	(void)tempreg;
+	tempreg = RCC->AHB3RSTR;
+	(void)tempreg;
+	tempreg = RCC->APB1RSTR;
+	(void)tempreg;
+	tempreg = RCC->APB2RSTR;
+	(void)tempreg;
+
+	/* hardware de-reset all peripherals and system */
+	//reset crc, gpio, otg hs, ethernet, dma modules
+	RCC->AHB1RSTR = 0x0U;
+
+	//reset otg fs, random number generator, hash, cryptography, camera modules
+	RCC->AHB2RSTR = 0x0U;
+
+	//reset fsmc module
+	RCC->AHB3RSTR = 0x0U;
+
+	//reset dac, power interface, can, i2c, uart, spi, watchdog, timer peripherals
+	RCC->APB1RSTR = 0x0U;
+
+	//reset timer, system config controller, spi, sdio, adc, uart peripherals
+	RCC->APB2RSTR = 0x0U;
+
+	FLASH->ACR |= FLASH_ACR_LATENCY_5WS;	//5 wait states for upto 168MHz
 
 	/* adaptive real time memory accelerator
 	   Flash Memory Configuration		*/
@@ -209,7 +240,6 @@ void SystemInit(void)
 	/** Configure the main internal regulator output voltage **/
 
   //enable power interface controller clock
-  volatile uint32_t tempreg = 0x00U;
   RCC->APB1ENR |= (1U<<28);
   tempreg = (RCC->APB1ENR & (1U<<28));	//delay after CLK enable
   (void)tempreg;	//make it unused to suppress warning

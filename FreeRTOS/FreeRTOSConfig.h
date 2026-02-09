@@ -45,13 +45,13 @@
 /******************************************************************************/
 /* Hardware description related definitions. **********************************/
 /******************************************************************************/
-
+extern uint32_t SystemCoreClock;
 /* In most cases, configCPU_CLOCK_HZ must be set to the frequency of the clock
  * that drives the peripheral used to generate the kernels periodic tick interrupt.
  * The default value is set to 20MHz and matches the QEMU demo settings.  Your
  * application will certainly need a different value so set this correctly.
  * This is very often, but not always, equal to the main system clock frequency. */
-#define configCPU_CLOCK_HZ    ( ( unsigned long ) 20000000 )
+#define configCPU_CLOCK_HZ    ( ( unsigned long ) SystemCoreClock )
 
 /* configSYSTICK_CLOCK_HZ is an optional parameter for ARM Cortex-M ports only.
  *
@@ -65,9 +65,8 @@
  * The default value is undefined (commented out).  If you need this value bring it
  * back and set it to a suitable value. */
 
-/*
- #define configSYSTICK_CLOCK_HZ                  [Platform specific]
- */
+//#define configSYSTICK_CLOCK_HZ			(configCPU_CLOCK_HZ / 8)
+
 
 /******************************************************************************/
 /* Scheduling behaviour related definitions. **********************************/
@@ -75,7 +74,7 @@
 
 /* configTICK_RATE_HZ sets frequency of the tick interrupt in Hz, normally
  * calculated from the configCPU_CLOCK_HZ value. */
-#define configTICK_RATE_HZ                         1
+#define configTICK_RATE_HZ                         1000U
 
 /* Set configUSE_PREEMPTION to 1 to use pre-emptive scheduling.  Set
  * configUSE_PREEMPTION to 0 to use co-operative scheduling.
@@ -87,7 +86,7 @@
  * configUSE_TIME_SLICING to 0 to prevent the scheduler switching between Ready
  * state tasks just because there was a tick interrupt.  See
  * https://freertos.org/single-core-amp-smp-rtos-scheduling.html. */
-#define configUSE_TIME_SLICING                     0
+#define configUSE_TIME_SLICING                     1
 
 /* Set configUSE_PORT_OPTIMISED_TASK_SELECTION to 1 to select the next task to
  * run using an algorithm optimised to the instruction set of the target hardware -
@@ -280,7 +279,7 @@
  * or heap_4.c are included in the build.  This value is defaulted to 4096 bytes but
  * it must be tailored to each application.  Note the heap will appear in the .bss
  * section.  See https://www.freertos.org/a00111.html. */
-#define configTOTAL_HEAP_SIZE                        4096
+#define configTOTAL_HEAP_SIZE                        1024 * 16
 
 /* Set configAPPLICATION_ALLOCATED_HEAP to 1 to have the application allocate
  * the array used as the FreeRTOS heap.  Set to 0 to have the linker allocate the
@@ -308,7 +307,7 @@
  * switch performing interrupts.  Not supported by all FreeRTOS ports.  See
  * https://www.freertos.org/RTOS-Cortex-M3-M4.html for information specific to
  * ARM Cortex-M devices. */
-#define configKERNEL_INTERRUPT_PRIORITY          0
+#define configKERNEL_INTERRUPT_PRIORITY          0xf0
 
 /* configMAX_SYSCALL_INTERRUPT_PRIORITY sets the interrupt priority above which
  * FreeRTOS API calls must not be made.  Interrupts above this priority are never
@@ -316,7 +315,7 @@
  * highest interrupt priority (0).  Not supported by all FreeRTOS ports.
  * See https://www.freertos.org/RTOS-Cortex-M3-M4.html for information specific to
  * ARM Cortex-M devices. */
-#define configMAX_SYSCALL_INTERRUPT_PRIORITY     5
+#define configMAX_SYSCALL_INTERRUPT_PRIORITY	(uint8_t)0x50
 
 /* Another name for configMAX_SYSCALL_INTERRUPT_PRIORITY - the name used depends
  * on the FreeRTOS port. */
@@ -645,5 +644,11 @@
 #define INCLUDE_xTaskAbortDelay                0
 #define INCLUDE_xTaskGetHandle                 0
 #define INCLUDE_xTaskResumeFromISR             1
+
+//give reference for isr handlers defined in startup file to FreeRTOS
+#define vPortSVCHandler 						SVC_Handler
+#define xPortPendSVHandler						PendSV_Handler
+#define xPortSysTickHandler						SysTick_Handler
+
 
 #endif /* FREERTOS_CONFIG_H */

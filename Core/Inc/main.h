@@ -31,6 +31,9 @@ extern "C" {
 #include "stm32f4xx.h"
 #include "FreeRTOS.h"
 #include "task.h"
+#include "itm.h"
+#include "gpio.h"
+#include "stdio.h"
 
 
 extern void SystemClock_Config(void);
@@ -58,7 +61,7 @@ extern void SystemClock_Config(void);
  *	user defined assert macro
  */
 #define userConfigASSERT(reg, bit_mask, val)	\
-    if((reg & bit_mask) != (val))			\
+    if((reg & bit_mask) != (val))				\
     {                             				\
         taskDISABLE_INTERRUPTS(); 				\
         for(;;);                         		\
